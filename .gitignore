@@ -1,0 +1,39 @@
+# Node / Next
+node_modules/
+.next/
+npm-debug.log*
+yarn-error.log*
+
+# Frontend
+/frontend/node_modules/
+/frontend/.next/
+/frontend/.env.local
+
+# PHP / Composer
+vendor/
+/.phpunit.result.cache
+
+# Environment files
+.env
+.env.*
+backend/.env
+
+# Logs and runtime
+*.log
+storage/logs/
+backend/storage/logs/
+
+# Build / output
+/dist
+/build
+out/
+
+# IDEs and OS
+.vscode/
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Docker overrides
+docker-compose.override.yml
