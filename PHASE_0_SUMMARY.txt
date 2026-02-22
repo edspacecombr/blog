@@ -4,10 +4,12 @@
 ║                                                                              ║
 ║            Professional Multilingual Blog Platform - Phase 0 Build           ║
 ║                                                                              ║
+║                Database: PostgreSQL 13.0+ + Redis 6.0+                      ║
+║                                                                              ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
 📅 Data de Conclusão: 22 de Fevereiro de 2026
-📊 Status: ✅ 100% COMPLETO
+📊 Status: ✅ 100% COMPLETO (PostgreSQL + Redis)
 🎯 Próxima Fase: Phase 1 - Content Management
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -19,17 +21,23 @@
     ├── Auth/JWTAuth.php - JWT Token Management
     ├── Auth/AuthService.php - Register/Login
     ├── Controllers/AuthController.php - API Endpoints
-    ├── Database/Connection.php - PDO Connection
-    ├── Database/Migration.php - Schema (11 tabelas)
+    ├── Database/Connection.php - PostgreSQL Connection (PDO)
+    ├── Database/Migration.php - Schema (11 tabelas PostgreSQL)
     ├── Middleware/AuthMiddleware.php - Auth Validation
-    ├── composer.json - Dependências
-    └── .env.example - Configuração
+    ├── Cache/CacheService.php - Redis Cache Service
+    ├── composer.json - Dependências (pgsql + redis)
+    └── .env.example - Configuração PostgreSQL + Redis
     
     API Endpoints:
     • POST /api/v1/auth/register
     • POST /api/v1/auth/login
     • GET  /api/v1/auth/validate
     • GET  /api/v1/health
+
+    PostgreSQL + Redis:
+    • Connection: pgsql://blog_user@localhost:5432/blog_platform
+    • Redis: redis://localhost:6379
+    • Cache: blog: namespace com TTL support
 
 [✅] FRONTEND (Next.js 14)
     ├── pages/index.tsx - Landing Page
@@ -49,12 +57,12 @@
     • Protected Dashboard
     • API Integration
 
-[✅] DATABASE (MySQL 8.0+)
-    11 Tabelas Criadas:
+[✅] DATABASE (PostgreSQL 13.0+ + Redis 6.0+)
+    11 Tabelas Criadas (PostgreSQL):
     1. users - User Management (Admin, Editor, Author)
-    2. blog_settings - Configuration
-    3. posts - Blog Posts (Multilingual)
-    4. categories - Post Categories
+    2. blog_settings - Configuration (JSONB)
+    3. posts - Blog Posts (Multilingual + JSONB)
+    4. categories - Post Categories (Hierárquico)
     5. post_category - M:N Relationship
     6. pages - Static Pages
     7. menus - Navigation Menus
@@ -63,13 +71,21 @@
     10. languages - Language Config
     11. language_settings - Lang-specific Settings
 
-    Features:
-    • UTF-8MB4 Full Unicode Support
-    • Foreign Keys with CASCADE
-    • Optimized Indexes (20+)
-    • Full-Text Search Ready
-    • RTL Language Support
-    • Normalized 3NF Schema
+    Features PostgreSQL:
+    • SERIAL (auto-increment)
+    • JSONB (multilingual data)
+    • CHECK constraints (validation)
+    • GIN indexes (full-text search)
+    • UTF-8 default encoding
+    • TIMESTAMP handling
+
+    Redis Cache Layer:
+    • blog:post:{id} - TTL 1h (individual posts)
+    • blog:posts:lang:{lang} - TTL 30min (post lists)
+    • blog:categories:lang:{lang} - TTL 1h
+    • blog:menus:lang:{lang} - TTL 1h
+    • blog:settings - TTL 24h (global settings)
+    • blog:user_sessions:{user_id} (session tokens)
 
 [✅] AUTHENTICATION & SECURITY
     ✓ JWT Token Generation & Validation
@@ -98,9 +114,11 @@
 Backend:
   • PHP 8.1+
   • Firebase/JWT 6.8 (Authentication)
-  • PDO (Database)
+  • PDO PostgreSQL (Database)
+  • Redis Extension (Cache)
   • Symfony/Dotenv (Config)
   • Monolog (Logging)
+  • CacheService (Redis abstraction)
 
 Frontend:
   • Next.js 14
@@ -110,10 +128,12 @@ Frontend:
   • Zustand 4.4 (State)
   • Axios 1.6 (HTTP)
 
-Database:
-  • MySQL 8.0+
-  • UTF-8MB4 Charset
-  • InnoDB Engine
+Database & Cache:
+  • PostgreSQL 13.0+ (primary DB)
+  • Redis 6.0+ (cache layer)
+  • SERIAL, JSONB, CHECK, GIN indexes
+  • UTF-8 encoding (default)
+  • Full ACID + in-memory cache
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -145,20 +165,31 @@ Quality Metrics:
 
 🚀 GETTING STARTED
 
-Installation:
+Installation (PostgreSQL + Redis):
+  Prerequisites:
+    1. Install PostgreSQL 13+
+    2. Install Redis 6+
+    3. Install PHP 8.1+ with pdo_pgsql + redis extensions
+  
+  Setup:
   1. chmod +x setup.sh
-  2. ./setup.sh
+  2. ./setup.sh (installs PHP deps)
+  3. Create PostgreSQL database (see docs/POSTGRESQL_REDIS_SETUP.md)
+  4. Configure .env with PostgreSQL + Redis credentials
   
   OR Manual:
   1. cd backend && composer install
   2. cd ../frontend && npm install
 
-Start Development:
-  Terminal 1 (Backend):
+Start Development (PostgreSQL + Redis):
+  Terminal 1 (Redis):
+    redis-server
+    
+  Terminal 2 (Backend):
     cd backend
     php -S localhost:8000 -t public
     
-  Terminal 2 (Frontend):
+  Terminal 3 (Frontend):
     cd frontend
     npm run dev
 
@@ -166,23 +197,28 @@ Access:
   • Frontend: http://localhost:3000
   • Backend: http://localhost:8000
   • API Health: http://localhost:8000/api/v1/health
+  • Redis Monitor: redis-cli MONITOR
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ✨ FEATURES IMPLEMENTED
 
 ✓ User Authentication (Register/Login)
-✓ JWT Token Management
-✓ Role-Based Access Control (RBAC)
-✓ User Status Management
+✓ JWT Token Management (24h expiration)
+✓ Role-Based Access Control (Admin, Editor, Author)
+✓ User Status Management (active, inactive, suspended)
 ✓ Protected Routes (Dashboard)
 ✓ API Client with Token Injection
 ✓ Error Handling & Logging
 ✓ CORS Configuration
 ✓ Responsive UI (Tailwind CSS)
 ✓ Multilingual Database Structure
-✓ Database Migrations
+✓ Database Migrations (PostgreSQL 13.0+)
 ✓ Environment Configuration
+✓ Redis Cache Layer (blog: namespace)
+✓ CacheService abstraction
+✓ PostgreSQL JSONB for metadata
+✓ PostgreSQL full-text search (GIN indexes)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

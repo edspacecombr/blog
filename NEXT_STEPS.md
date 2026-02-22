@@ -1,50 +1,109 @@
 # 🚀 Próximos Passos - Phase 1: Content Management
 
 **Data:** 22 de Fevereiro de 2026  
-**Status Atual:** Phase 0 ✅ Completo  
+**Status Atual:** Phase 0 ✅ Completo (PostgreSQL + Redis)  
 **Próxima Fase:** Phase 1 🔄 Pronta para Iniciar  
 **Estimativa:** 2 semanas
+
+**Stack Utilizado:**
+- Backend: PHP 8.1
+- Database: PostgreSQL 13.0+
+- Cache: Redis 6.0+
+- Frontend: Next.js 14
 
 ---
 
 ## 📋 O Que Fazer Agora
 
-### 1️⃣ Validação da Fundação
+### 1️⃣ Instalação de Pré-requisitos
+
+```bash
+# PostgreSQL 13+
+# macOS
+brew install postgresql@13
+
+# Ubuntu/Debian
+sudo apt-get install postgresql-13
+
+# Redis 6+
+# macOS
+brew install redis
+
+# Ubuntu/Debian
+sudo apt-get install redis-server
+```
+
+### 2️⃣ Setup do Banco de Dados (PostgreSQL)
+
+```bash
+# Conectar ao PostgreSQL
+sudo -u postgres psql
+
+# Criar database
+CREATE DATABASE blog_platform 
+  ENCODING 'UTF8' 
+  LC_COLLATE 'en_US.UTF-8' 
+  LC_CTYPE 'en_US.UTF-8';
+
+# Criar usuário
+CREATE USER blog_user WITH PASSWORD 'sua_senha_segura';
+
+# Conceder privilégios
+GRANT ALL PRIVILEGES ON DATABASE blog_platform TO blog_user;
+
+# Conectar ao banco
+\c blog_platform
+
+# Conceder privilégios no schema
+GRANT ALL ON SCHEMA public TO blog_user;
+
+# Sair
+\q
+```
+
+### 3️⃣ Validação da Fundação
 
 Antes de começar Phase 1, execute os seguintes testes:
 
 ```bash
-# Terminal 1: Backend
+# Terminal 1: Redis
+redis-server
+
+# Terminal 2: Backend
 cd backend
 cp .env.example .env
-# Editar .env com suas credenciais MySQL
+# Editar .env com credenciais PostgreSQL e Redis
+composer install
 php -S localhost:8000 -t public
 
-# Terminal 2: Frontend
+# Terminal 3: Frontend
 cd frontend
 npm install
 npm run dev
 
-# Terminal 3: Testar API
+# Terminal 4: Testar API
 curl http://localhost:8000/api/v1/health
 # Esperado: {"status":"ok","timestamp":"..."}
 ```
 
-### 2️⃣ Setup do Banco de Dados
+### 4️⃣ Rodar Migrations (PostgreSQL)
 
 ```bash
-# Criar database
-mysql -u root -p
-CREATE DATABASE blog_platform CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'blog_user'@'localhost' IDENTIFIED BY 'sua_senha';
-GRANT ALL PRIVILEGES ON blog_platform.* TO 'blog_user'@'localhost';
-FLUSH PRIVILEGES;
+# No diretório backend
+php -r "
+  require 'vendor/autoload.php';
+  \$dotenv = \Dotenv\Dotenv::createImmutable(__DIR__);
+  \$dotenv->load();
+  \$migration = new \App\Database\Migration();
+  \$migration->run();
+"
 
-# Executar migrations (será automatizado em Phase 1)
-# Temporariamente: copiar schema de docs/DATABASE_SCHEMA.md
+# Ou manualmente em psql
+psql -h localhost -U blog_user -d blog_platform
+# \i docs/DATABASE_SCHEMA.md (não direto, converter para SQL)
 ```
 
-### 3️⃣ Testar Autenticação
+### 5️⃣ Testar Autenticação
 
 ```bash
 # Register
@@ -57,8 +116,33 @@ curl -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"pass123"}'
 
-# Verificar token nos cookies/localStorage do frontend
+# Verificar token
+curl -X GET http://localhost:8000/api/v1/auth/validate \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE"
+
+# Testar Frontend
 # Acessar http://localhost:3000/login
+```
+
+### 6️⃣ Testar Cache Redis
+
+```bash
+# Verificar conexão
+redis-cli ping
+# Esperado: PONG
+
+# Monitorar cache em tempo real (em outro terminal)
+redis-cli MONITOR
+
+# Testar CacheService (criar script teste)
+php -r "
+  require 'vendor/autoload.php';
+  \$dotenv = \Dotenv\Dotenv::createImmutable(__DIR__);
+  \$dotenv->load();
+  \$cache = new \App\Cache\CacheService('blog:');
+  \$cache->set('test', ['data' => 'value'], 3600);
+  var_dump(\$cache->get('test'));
+"
 ```
 
 ---
@@ -73,6 +157,7 @@ curl -X POST http://localhost:8000/api/v1/auth/login \
 - Create Post entity
 - Implement validation
 - Add multilingual support
+- Use PostgreSQL JSONB for metadata
 ```
 
 **Files to Create:**
@@ -83,12 +168,17 @@ curl -X POST http://localhost:8000/api/v1/auth/login \
 #### 1.2 Post API Endpoints
 ```
 POST   /api/v1/posts           → Create new post
-GET    /api/v1/posts           → List posts (paginated)
-GET    /api/v1/posts/{id}      → Get single post
+GET    /api/v1/posts           → List posts (paginated, cached)
+GET    /api/v1/posts/{id}      → Get single post (cached)
 PUT    /api/v1/posts/{id}      → Update post
 DELETE /api/v1/posts/{id}      → Delete post
 POST   /api/v1/posts/{id}/publish → Publish post
 ```
+
+**Cache Keys (Redis):**
+- `blog:post:{id}` - TTL 1h
+- `blog:posts:lang:{lang}` - TTL 30min
+- `blog:posts:author:{author_id}` - TTL 30min
 
 **Files to Create:**
 - `backend/src/Controllers/PostController.php`
@@ -100,6 +190,7 @@ POST   /api/v1/posts/{id}/publish → Publish post
 - Post editor page
 - Post preview
 - Draft/Published status
+- Uses cached API responses
 
 **Files to Create:**
 - `frontend/src/pages/posts/index.tsx`
@@ -112,11 +203,15 @@ POST   /api/v1/posts/{id}/publish → Publish post
 
 #### 2.1 Category API
 ```
-GET    /api/v1/categories
+GET    /api/v1/categories          (cached)
 POST   /api/v1/categories
 PUT    /api/v1/categories/{id}
 DELETE /api/v1/categories/{id}
 ```
+
+**Cache Keys (Redis):**
+- `blog:categories:lang:{lang}` - TTL 1h
+- `blog:categories:hierarchical:{lang}` - TTL 1h
 
 #### 2.2 Frontend Category Management
 - Category list
@@ -134,7 +229,7 @@ DELETE /api/v1/categories/{id}
 #### 3.1 Media Upload API
 ```
 POST   /api/v1/media/upload
-GET    /api/v1/media
+GET    /api/v1/media               (cached)
 GET    /api/v1/media/{id}
 DELETE /api/v1/media/{id}
 ```
@@ -144,6 +239,11 @@ DELETE /api/v1/media/{id}
 - File size validation
 - Format validation (jpg, png, webp)
 - Image optimization
+- Store paths in PostgreSQL
+
+**Cache Keys (Redis):**
+- `blog:media:{id}` - TTL 24h
+- `blog:media:list:{user_id}` - TTL 1h
 
 #### 3.2 Frontend Media Library
 - Media upload interface
@@ -162,11 +262,15 @@ DELETE /api/v1/media/{id}
 #### 4.1 Page API
 ```
 POST   /api/v1/pages
-GET    /api/v1/pages
-GET    /api/v1/pages/{slug}
+GET    /api/v1/pages               (cached)
+GET    /api/v1/pages/{slug}        (cached)
 PUT    /api/v1/pages/{id}
 DELETE /api/v1/pages/{id}
 ```
+
+**Cache Keys (Redis):**
+- `blog:page:{slug}:{lang}` - TTL 24h
+- `blog:pages:list:{lang}` - TTL 1h
 
 #### 4.2 Frontend Page Management
 - Page editor
@@ -277,29 +381,86 @@ DELETE /api/v1/pages/{id}
 
 ## 📚 Resources & References
 
-### Database Queries Examples (Phase 1)
+### Database Queries Examples (Phase 1 - PostgreSQL)
 
-```php
-// Get published posts by language
+```sql
+-- Get published posts by language
 SELECT * FROM posts 
 WHERE language = 'en' AND status = 'published'
 ORDER BY published_at DESC
 LIMIT 10;
 
-// Get posts with categories
-SELECT p.*, GROUP_CONCAT(c.name) as categories
+-- Get posts with categories (PostgreSQL string_agg)
+SELECT p.id, p.title, p.slug, string_agg(c.name, ', ') as categories
 FROM posts p
 LEFT JOIN post_category pc ON p.id = pc.post_id
 LEFT JOIN categories c ON c.id = pc.category_id
 WHERE p.language = 'en'
 GROUP BY p.id;
 
-// Multilingual posts (get all versions)
+-- Multilingual posts (get all versions)
 SELECT DISTINCT p.id, p.language, p.title, p.slug
 FROM posts p
 WHERE p.id IN (
   SELECT id FROM posts WHERE slug = 'my-post'
 );
+
+-- Full-text search using PostgreSQL GIN index
+SELECT * FROM posts 
+WHERE to_tsvector('english', title || ' ' || COALESCE(content, '')) 
+  @@ plainto_tsquery('english', 'search term')
+AND language = 'en'
+ORDER BY published_at DESC;
+
+-- Get cached vs fresh posts count
+SELECT COUNT(*) FROM posts WHERE status = 'published' AND language = 'en';
+-- Cache this in Redis: blog:posts:count:en
+```
+
+### Redis Cache Integration (Phase 1)
+
+```php
+// In PostService
+use App\Cache\CacheService;
+
+class PostService {
+    private CacheService $cache;
+    
+    public function __construct() {
+        $this->cache = new CacheService('blog:');
+    }
+    
+    public function getPosts($language, $page = 1) {
+        $cacheKey = "posts:lang:{$language}:page:{$page}";
+        
+        // Try cache first
+        if ($this->cache->exists($cacheKey)) {
+            return $this->cache->get($cacheKey);
+        }
+        
+        // Query database if not cached
+        $posts = $this->queryPostsFromDb($language, $page);
+        
+        // Cache results (30 min TTL)
+        $this->cache->set($cacheKey, $posts, 1800);
+        
+        return $posts;
+    }
+    
+    public function createPost($data) {
+        $post = $this->saveToDb($data);
+        
+        // Invalidate related caches
+        $this->cache->delete("posts:lang:{$data['language']}:page:1");
+        $this->cache->delete("posts:lang:{$data['language']}:page:2");
+        // ... invalidate other pages
+        
+        // Cache individual post (1 hour TTL)
+        $this->cache->set("post:{$post['id']}", $post, 3600);
+        
+        return $post;
+    }
+}
 ```
 
 ### API Response Format Example
@@ -328,17 +489,28 @@ WHERE p.id IN (
 
 ## 🚀 How to Structure Phase 1
 
-### Week 1: Posts & Categories
+### Week 1: Posts & Categories (with PostgreSQL + Redis)
 - Day 1-2: Database optimization & Post CRUD backend
+  * Use PostgreSQL JSONB for metadata
+  * Implement CacheService for post caching
 - Day 3-4: Post frontend (list, editor, preview)
+  * Consume cached API responses
 - Day 5: Category backend & frontend
+  * Cache categories in Redis
 - Day 6-7: Integration & testing
+  * Test cache invalidation
+  * Test PostgreSQL queries
 
-### Week 2: Media & Pages
+### Week 2: Media & Pages (with caching)
 - Day 1-2: Media upload backend
+  * Store in PostgreSQL
+  * Cache file paths
 - Day 3-4: Media library frontend
+  * Show cached media list
 - Day 5-6: Page management backend & frontend
+  * Cache static pages (24h TTL)
 - Day 7: Admin dashboard completion & testing
+  * Monitor Redis cache performance
 
 ---
 
@@ -348,8 +520,11 @@ WHERE p.id IN (
 - All CRUD endpoints working
 - Input validation implemented
 - Error handling in place
-- Pagination working
-- Multilingual queries tested
+- Pagination working (with Redis caching)
+- PostgreSQL full-text search working
+- Cache invalidation strategies implemented
+- JSONB queries for multilingual data working
+- All tests passing (database + cache)
 
 ✅ **Frontend Completed When:**
 - All admin pages functional
@@ -357,12 +532,15 @@ WHERE p.id IN (
 - Loading states display properly
 - Errors handled gracefully
 - Mobile responsive
+- Cache strategies implemented (stale-while-revalidate)
 
-✅ **Testing Completed When:**
-- All API endpoints tested
-- User flows verified
-- No console errors
-- Performance acceptable
+✅ **Cache & Database Completed When:**
+- Redis cache hit rate > 80%
+- PostgreSQL queries optimized
+- GIN indexes working for full-text search
+- Cache invalidation working correctly
+- No cache stale data issues
+- Memory usage acceptable on both services
 
 ---
 
