@@ -8,9 +8,8 @@
     "symfony/http-foundation": "^6.3",
     "symfony/routing": "^6.3",
     "firebase/jwt": "^6.8",
-    "doctrine/orm": "^2.16",
-    "doctrine/dbal": "^3.6",
-    "mysql/mysql-server": "^8.0",
+    "ext-pdo_pgsql": "*",
+    "ext-redis": "*",
     "monolog/monolog": "^3.4",
     "vlucas/phpdotenv": "^5.5"
   },
@@ -28,3 +27,4 @@
     "lint": "phpstan analyse src"
   }
 }
+

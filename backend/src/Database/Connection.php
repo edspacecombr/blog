@@ -22,12 +22,14 @@ class Connection
     {
         try {
             $host = $_ENV['DB_HOST'] ?? 'localhost';
+            $port = $_ENV['DB_PORT'] ?? 5432;
             $database = $_ENV['DB_DATABASE'] ?? 'blog_platform';
             $user = $_ENV['DB_USER'] ?? 'blog_user';
             $password = $_ENV['DB_PASSWORD'] ?? '';
-            $charset = $_ENV['DB_CHARSET'] ?? 'utf8mb4';
+            $sslmode = $_ENV['DB_SSLMODE'] ?? 'prefer';
 
-            $dsn = "mysql:host=$host;dbname=$database;charset=$charset";
+            // PostgreSQL DSN
+            $dsn = "pgsql:host=$host;port=$port;dbname=$database;sslmode=$sslmode";
             
             self::$connection = new PDO(
                 $dsn,
@@ -49,3 +51,4 @@ class Connection
         self::$connection = null;
     }
 }
+
