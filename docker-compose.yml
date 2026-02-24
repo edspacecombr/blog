@@ -21,14 +21,26 @@ services:
   redis:
     image: redis:7
     restart: unless-stopped
-    # If REDIS_PASSWORD is set to a non-null value, start redis with requirepass
-    command: sh -c 'if [ "${REDIS_PASSWORD:-null}" != "null" ] && [ -n "${REDIS_PASSWORD}" ]; then redis-server --requirepass "${REDIS_PASSWORD}"; else redis-server; fi'
+    # If REDIS_PASSWORD is set, create a redis.conf with ACL user and requirepass
+    environment:
+      REDIS_USER: ${REDIS_USER:-default}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    command:
+      - sh
+      - -c
+      - |
+        if [ -n "$${REDIS_PASSWORD}" ]; then
+          printf 'requirepass %s\nuser %s on >%s ~* +@all\n' "$${REDIS_PASSWORD}" "$${REDIS_USER:-default}" "$${REDIS_PASSWORD}" > /usr/local/etc/redis/redis.conf
+          redis-server /usr/local/etc/redis/redis.conf
+        else
+          redis-server
+        fi
     volumes:
       - redis_data:/data
     ports:
       - "6379:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "if [ -n \"$${REDIS_PASSWORD}\" ]; then redis-cli -a \"$${REDIS_PASSWORD}\" ping; else redis-cli ping; fi"]
       interval: 10s
       timeout: 5s
       retries: 5

@@ -21,12 +21,12 @@ class Connection
     private static function connect(): void
     {
         try {
-            $host = $_ENV['DB_HOST'] ?? 'localhost';
-            $port = $_ENV['DB_PORT'] ?? 5432;
-            $database = $_ENV['DB_DATABASE'] ?? 'blog_platform';
-            $user = $_ENV['DB_USER'] ?? 'blog_user';
-            $password = $_ENV['DB_PASSWORD'] ?? '';
-            $sslmode = $_ENV['DB_SSLMODE'] ?? 'prefer';
+            $host = getenv('DB_HOST') ?: 'localhost';
+            $port = getenv('DB_PORT') ?: 5432;
+            $database = getenv('DB_DATABASE') ?: 'blog_platform';
+            $user = getenv('DB_USER') ?: 'blog_user';
+            $password = getenv('DB_PASSWORD') ?: '';
+            $sslmode = getenv('DB_SSLMODE') ?: 'prefer';
 
             // PostgreSQL DSN
             $dsn = "pgsql:host=$host;port=$port;dbname=$database;sslmode=$sslmode";

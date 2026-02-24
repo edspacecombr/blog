@@ -2,7 +2,7 @@
 
 namespace App;
 
-use Dotenv\Dotenv;
+use Dotenv\Dotenv as VlucasDotenv;
 
 class App
 {
@@ -26,10 +26,7 @@ class App
 
     private function loadEnv(): void
     {
-        if (file_exists(__DIR__ . '/../.env')) {
-            $dotenv = Dotenv::createImmutable(__DIR__ . '/..');
-            $dotenv->load();
-        }
+        // .env is already loaded in public/index.php before App initialization
     }
 
     private function registerErrorHandlers(): void
@@ -69,11 +66,36 @@ class App
         $this->routes['DELETE'][$path] = $handler;
     }
 
+    public function patch(string $path, callable $handler): void
+    {
+        $this->routes['PATCH'][$path] = $handler;
+    }
+
+    private function matchRoute(string $method, string $path): array
+    {
+        if (isset($this->routes[$method][$path])) {
+            return ['handler' => $this->routes[$method][$path], 'params' => []];
+        }
+
+        // Try pattern matching for routes with parameters
+        foreach ($this->routes[$method] ?? [] as $pattern => $handler) {
+            $regex = preg_replace('/\{(\w+)\}/', '(?P<$1>[^/]+)', $pattern);
+            $regex = "#^{$regex}$#";
+            
+            if (preg_match($regex, $path, $matches)) {
+                $params = array_filter($matches, fn($k) => is_string($k), ARRAY_FILTER_USE_KEY);
+                return ['handler' => $handler, 'params' => $params];
+            }
+        }
+
+        return ['handler' => null, 'params' => []];
+    }
+
     public function run(): void
     {
         header('Content-Type: application/json');
         header('Access-Control-Allow-Origin: ' . ($_ENV['FRONTEND_URL'] ?? 'http://localhost:3000'));
-        header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+        header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
         header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
         if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -85,8 +107,16 @@ class App
         $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
         $path = str_replace(dirname($_SERVER['PHP_SELF']), '', $path) ?: '/';
 
-        if (isset($this->routes[$method][$path])) {
-            call_user_func($this->routes[$method][$path]);
+        $route = $this->matchRoute($method, $path);
+        
+        if ($route['handler']) {
+            if (is_array($route['handler']) && count($route['handler']) === 2) {
+                [$controller, $action] = $route['handler'];
+                $params = array_values($route['params']);
+                call_user_func_array([$controller, $action], $params);
+            } else {
+                call_user_func($route['handler']);
+            }
         } else {
             http_response_code(404);
             echo json_encode(['error' => 'Route not found']);

@@ -1,0 +1,74 @@
+/* Toast Notifications - Custom Tailwind Styles */
+
+.Toastify__toast-container {
+  @apply fixed z-50 pointer-events-none;
+}
+
+.Toastify__toast-container--bottom-right {
+  @apply bottom-4 right-4;
+}
+
+.Toastify__toast {
+  @apply pointer-events-auto rounded-lg shadow-lg p-4 mb-3 flex items-center gap-3;
+  @apply bg-white border-l-4;
+}
+
+.Toastify__toast--success {
+  @apply border-green-500 bg-green-50;
+}
+
+.Toastify__toast--success .Toastify__toast-icon {
+  @apply text-green-500;
+}
+
+.Toastify__toast--error {
+  @apply border-red-500 bg-red-50;
+}
+
+.Toastify__toast--error .Toastify__toast-icon {
+  @apply text-red-500;
+}
+
+.Toastify__toast--info {
+  @apply border-blue-500 bg-blue-50;
+}
+
+.Toastify__toast--info .Toastify__toast-icon {
+  @apply text-blue-500;
+}
+
+.Toastify__toast--warning {
+  @apply border-yellow-500 bg-yellow-50;
+}
+
+.Toastify__toast--warning .Toastify__toast-icon {
+  @apply text-yellow-500;
+}
+
+.Toastify__toast-body {
+  @apply text-gray-800 text-sm;
+}
+
+.Toastify__progress-bar {
+  @apply bg-green-500 h-1;
+}
+
+.Toastify__toast--success .Toastify__progress-bar {
+  @apply bg-green-500;
+}
+
+.Toastify__toast--error .Toastify__progress-bar {
+  @apply bg-red-500;
+}
+
+.Toastify__toast--info .Toastify__progress-bar {
+  @apply bg-blue-500;
+}
+
+.Toastify__toast--warning .Toastify__progress-bar {
+  @apply bg-yellow-500;
+}
+
+.Toastify__close-button {
+  @apply text-gray-400 hover:text-gray-600 opacity-50 hover:opacity-100;
+}

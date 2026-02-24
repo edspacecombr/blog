@@ -1,0 +1,20 @@
+{
+  "header": {
+    "home": "Início",
+    "blog": "Blog",
+    "about": "Sobre",
+    "contact": "Contato"
+  },
+  "footer": {
+    "copyright": "© 2026 Todos os direitos reservados",
+    "privacy": "Privacidade",
+    "terms": "Termos"
+  },
+  "common": {
+    "loading": "Carregando...",
+    "error": "Erro ao carregar",
+    "back": "Voltar",
+    "next": "Próximo",
+    "previous": "Anterior"
+  }
+}
