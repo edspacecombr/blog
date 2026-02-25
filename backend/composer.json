@@ -26,6 +26,9 @@
   },
   "scripts": {
     "test": "phpunit",
-    "lint": "phpstan analyse src"
+    "lint": "phpstan analyse src",
+    "test:unit": "phpunit tests/Unit",
+    "test:feature": "phpunit tests/Feature",
+    "test:coverage": "phpunit --coverage-html=coverage --coverage-text=php://stdout"
   }
 }
